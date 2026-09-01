@@ -1,0 +1,49 @@
+version: 2
+
+models:
+  - name: stg_ga4_events
+    description: >
+      Cleaned event-level GA4 data from the BigQuery public
+      GA4 obfuscated sample ecommerce dataset.
+
+    columns:
+      - name: event_date
+        description: GA4 event date in YYYYMMDD format.
+        data_tests:
+          - not_null
+
+      - name: event_timestamp
+        description: Event timestamp converted from microseconds to TIMESTAMP.
+        data_tests:
+          - not_null
+
+      - name: event_name
+        description: GA4 event name.
+        data_tests:
+          - not_null
+
+      - name: user_pseudo_id
+        description: GA4 pseudonymous user identifier.
+        data_tests:
+          - not_null
+
+      - name: event_bundle_sequence_id
+        description: GA4 event bundle sequence identifier.
+
+      - name: traffic_source
+        description: GA4 traffic source associated with the event.
+
+      - name: traffic_medium
+        description: GA4 traffic medium associated with the event.
+
+      - name: traffic_campaign
+        description: GA4 traffic campaign associated with the event.
+
+      - name: transaction_id
+        description: Ecommerce transaction identifier when available.
+
+      - name: purchase_revenue
+        description: Ecommerce purchase revenue in USD when available.
+
+      - name: event_params
+        description: Raw GA4 event parameters preserved for downstream extraction.

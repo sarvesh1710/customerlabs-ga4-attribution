@@ -1,0 +1,52 @@
+version: 2
+
+models:
+
+  - name: int_ga4_purchases
+    description: >
+      Purchase-event-level model derived from GA4 purchase events.
+      One row represents one purchase event. Each purchase is retained
+      independently so multiple purchases within the same session are
+      not collapsed.
+
+    columns:
+
+      - name: purchase_event_id
+        description: >
+          Deterministic identifier constructed from user_pseudo_id,
+          event timestamp, and event bundle sequence ID.
+        data_tests:
+          - not_null
+          - unique
+
+      - name: event_date
+        description: GA4 purchase event date.
+        data_tests:
+          - not_null
+
+      - name: event_timestamp
+        description: Purchase event timestamp.
+        data_tests:
+          - not_null
+
+      - name: user_pseudo_id
+        description: GA4 pseudonymous user identifier.
+        data_tests:
+          - not_null
+
+      - name: ga_session_id
+        description: GA4 session identifier associated with the purchase.
+        data_tests:
+          - not_null
+
+      - name: transaction_id
+        description: Ecommerce transaction identifier when available.
+
+      - name: purchase_revenue
+        description: Purchase revenue in USD when available.
+
+      - name: total_item_quantity
+        description: Total number of items included in the purchase.
+
+      - name: user_purchase_number
+        description: Sequential purchase number for the user based on purchase timestamp.

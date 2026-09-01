@@ -1,0 +1,46 @@
+version: 2
+
+models:
+
+  - name: int_ga4_touchpoints
+    description: >
+      Session-level marketing touchpoints derived from GA4 event data.
+      One row represents one user_pseudo_id and ga_session_id combination.
+      Event-level source, medium, and campaign parameters are preferred.
+      When event-level attribution is unavailable, the model falls back
+      to the GA4 traffic source fields.
+
+    columns:
+
+      - name: user_pseudo_id
+        description: GA4 pseudonymous user identifier.
+        data_tests:
+          - not_null
+
+      - name: ga_session_id
+        description: GA4 session identifier extracted from event_params.
+        data_tests:
+          - not_null
+
+      - name: session_start_ts
+        description: Earliest event timestamp observed in the session.
+        data_tests:
+          - not_null
+
+      - name: source
+        description: Session-level marketing source used for attribution.
+
+      - name: medium
+        description: Session-level marketing medium used for attribution.
+
+      - name: campaign
+        description: Session-level marketing campaign used for attribution.
+
+      - name: event_count
+        description: Number of GA4 events observed in the session.
+
+      - name: purchase_events
+        description: Number of purchase events observed in the session.
+
+      - name: purchase_revenue
+        description: Total purchase revenue generated within the session.

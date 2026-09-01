@@ -1,0 +1,71 @@
+version: 2
+
+models:
+
+  - name: mart_purchase_attribution
+    description: >
+      Purchase-level attribution mart calculating First-Click and Last-Click
+      channel attribution using a 14-day lookback window. Each row represents
+      one purchase event.
+
+      Attribution is resolved using user_pseudo_id. Eligible session
+      touchpoints must occur on or before the purchase timestamp and within
+      the preceding 14 days.
+
+    columns:
+
+      - name: purchase_event_id
+        description: Unique identifier for the purchase event.
+        data_tests:
+          - not_null
+          - unique
+
+      - name: purchase_date
+        description: Date of the purchase event.
+        data_tests:
+          - not_null
+
+      - name: purchase_timestamp
+        description: Timestamp of the purchase event.
+        data_tests:
+          - not_null
+
+      - name: user_pseudo_id
+        description: GA4 pseudonymous user identifier.
+        data_tests:
+          - not_null
+
+      - name: purchase_session_id
+        description: GA4 session in which the purchase occurred.
+        data_tests:
+          - not_null
+
+      - name: transaction_id
+        description: Ecommerce transaction identifier when available.
+
+      - name: purchase_revenue
+        description: Revenue associated with the purchase.
+
+      - name: first_click_source
+        description: Source receiving First-Click attribution.
+
+      - name: first_click_medium
+        description: Medium receiving First-Click attribution.
+
+      - name: first_click_campaign
+        description: Campaign receiving First-Click attribution.
+
+      - name: first_click_timestamp
+        description: Timestamp of the First-Click touchpoint.
+
+      - name: last_click_source
+        description: Source receiving Last-Click attribution.
+
+      - name: last_click_medium
+        description: Medium receiving Last-Click attribution.
+
+      - name: last_click_campaign
+        description: Campaign receiving Last-Click attribution.
+
+      - name: last_click_timestamp
+        description: Timestamp of the Last-Click touchpoint.

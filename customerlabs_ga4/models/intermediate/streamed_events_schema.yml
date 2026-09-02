@@ -1,0 +1,40 @@
+version: 2
+
+models:
+  - name: int_streamed_events
+    description: >
+      Deduplicated near-real-time event stream loaded into BigQuery
+      through the local micro-batch demonstration.
+
+    columns:
+      - name: event_id
+        description: >
+          Deterministic event identifier used as the deduplication key.
+        data_tests:
+          - not_null
+          - unique
+
+      - name: event_timestamp
+        description: Event occurrence timestamp.
+        data_tests:
+          - not_null
+
+      - name: user_pseudo_id
+        description: Pseudonymous user identifier.
+        data_tests:
+          - not_null
+
+      - name: ga_session_id
+        description: GA4 session identifier.
+        data_tests:
+          - not_null
+
+      - name: event_name
+        description: Event name.
+        data_tests:
+          - not_null
+
+      - name: ingested_at
+        description: Timestamp when the event was loaded into BigQuery.
+        data_tests:
+          - not_null

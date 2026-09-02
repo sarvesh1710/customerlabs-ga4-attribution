@@ -4,13 +4,30 @@ models:
 
   - name: int_ga4_touchpoints
     description: >
-      Session-level marketing touchpoints derived from GA4 event data.
-      One row represents one user_pseudo_id and ga_session_id combination.
-      Event-level source, medium, and campaign parameters are preferred.
-      When event-level attribution is unavailable, the model falls back
-      to the GA4 traffic source fields.
+      Event-level marketing touchpoints derived from GA4 page_view events.
+      One row represents one normalized channel transition for a user within
+      a GA4 session. Consecutive page views with the same normalized channel
+      are collapsed into a single touchpoint.
 
     columns:
+
+      - name: touchpoint_id
+        description: >
+          Deterministic identifier for the touchpoint based on user,
+          event timestamp, and event bundle sequence.
+        data_tests:
+          - not_null
+          - unique
+
+      - name: event_date
+        description: Date associated with the GA4 event.
+        data_tests:
+          - not_null
+
+      - name: event_timestamp
+        description: Timestamp of the qualifying page_view event.
+        data_tests:
+          - not_null
 
       - name: user_pseudo_id
         description: GA4 pseudonymous user identifier.
@@ -22,25 +39,25 @@ models:
         data_tests:
           - not_null
 
-      - name: session_start_ts
-        description: Earliest event timestamp observed in the session.
-        data_tests:
-          - not_null
+      - name: event_bundle_sequence_id
+        description: GA4 event bundle sequence identifier used for deterministic ordering.
 
       - name: source
-        description: Session-level marketing source used for attribution.
+        description: >
+          Event-level traffic source associated with the qualifying page_view.
 
       - name: medium
-        description: Session-level marketing medium used for attribution.
+        description: >
+          Event-level traffic medium associated with the qualifying page_view.
 
       - name: campaign
-        description: Session-level marketing campaign used for attribution.
+        description: >
+          Event-level traffic campaign associated with the qualifying page_view.
 
-      - name: event_count
-        description: Number of GA4 events observed in the session.
-
-      - name: purchase_events
-        description: Number of purchase events observed in the session.
-
-      - name: purchase_revenue
-        description: Total purchase revenue generated within the session.
+      - name: channel
+        description: >
+          Normalized marketing channel derived from source and medium.
+          Supported values include paid_search, organic_search, referral,
+          direct, and other.
+        data_tests:
+          - not_null

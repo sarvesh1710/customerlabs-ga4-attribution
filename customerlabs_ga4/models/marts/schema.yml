@@ -4,13 +4,20 @@ models:
 
   - name: mart_purchase_attribution
     description: >
-      Purchase-level attribution mart calculating First-Click and Last-Click
-      channel attribution using a 14-day lookback window. Each row represents
-      one purchase event.
+      Purchase-level attribution mart calculating First-Click and
+      Last-Click attribution using a 14-day lookback window.
+      Each row represents one purchase event.
 
-      Attribution is resolved using user_pseudo_id. Eligible session
-      touchpoints must occur on or before the purchase timestamp and within
-      the preceding 14 days.
+      Attribution is resolved using user_pseudo_id. Eligible touchpoints
+      are qualifying traffic-bearing page_view events that occur before
+      the purchase and within the preceding 14 days.
+
+      First-Click selects the earliest eligible touchpoint.
+
+      Last-Click selects the latest eligible non-direct touchpoint.
+      Direct is used as a fallback when no non-direct touchpoint exists.
+
+      Purchases without an eligible touchpoint remain unattributed.
 
     columns:
 
@@ -31,7 +38,7 @@ models:
           - not_null
 
       - name: user_pseudo_id
-        description: GA4 pseudonymous user identifier.
+        description: GA4 pseudonymous user identifier used for attribution.
         data_tests:
           - not_null
 
@@ -46,26 +53,45 @@ models:
       - name: purchase_revenue
         description: Revenue associated with the purchase.
 
+      - name: total_item_quantity
+        description: Total quantity of items associated with the purchase.
+
       - name: first_click_source
-        description: Source receiving First-Click attribution.
+        description: Source associated with the earliest eligible touchpoint.
 
       - name: first_click_medium
-        description: Medium receiving First-Click attribution.
+        description: Medium associated with the earliest eligible touchpoint.
 
       - name: first_click_campaign
-        description: Campaign receiving First-Click attribution.
+        description: Campaign associated with the earliest eligible touchpoint.
+
+      - name: first_click_channel
+        description: >
+          Normalized channel receiving First-Click attribution.
+          Returns unattributed when no eligible touchpoint exists.
+        data_tests:
+          - not_null
 
       - name: first_click_timestamp
         description: Timestamp of the First-Click touchpoint.
 
       - name: last_click_source
-        description: Source receiving Last-Click attribution.
+        description: Source associated with the Last-Click touchpoint.
 
       - name: last_click_medium
-        description: Medium receiving Last-Click attribution.
+        description: Medium associated with the Last-Click touchpoint.
 
       - name: last_click_campaign
-        description: Campaign receiving Last-Click attribution.
+        description: Campaign associated with the Last-Click touchpoint.
+
+      - name: last_click_channel
+        description: >
+          Normalized channel receiving Last-Click attribution.
+          The latest non-direct touchpoint is preferred, with Direct
+          used as a fallback when no non-direct touchpoint exists.
+          Returns unattributed when no eligible touchpoint exists.
+        data_tests:
+          - not_null
 
       - name: last_click_timestamp
         description: Timestamp of the Last-Click touchpoint.

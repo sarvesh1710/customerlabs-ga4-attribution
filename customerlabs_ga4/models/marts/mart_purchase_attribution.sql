@@ -26,19 +26,26 @@ eligible_touchpoints as (
         p.purchase_revenue,
         p.total_item_quantity,
 
+        t.touchpoint_id,
         t.ga_session_id as touchpoint_session_id,
-        t.session_start_ts as touchpoint_timestamp,
+        t.event_timestamp as touchpoint_timestamp,
+        t.event_bundle_sequence_id,
         t.source,
         t.medium,
-        t.campaign
+        t.campaign,
+        t.channel
 
     from purchases p
 
     left join {{ ref('int_ga4_touchpoints') }} t
         on p.user_pseudo_id = t.user_pseudo_id
-        and t.session_start_ts between
-            timestamp_sub(p.purchase_timestamp, interval 14 day)
-            and p.purchase_timestamp
+
+        and t.event_timestamp < p.purchase_timestamp
+
+        and t.event_timestamp >= timestamp_sub(
+            p.purchase_timestamp,
+            interval 14 day
+        )
 
 ),
 
@@ -46,23 +53,38 @@ ranked_touchpoints as (
 
     select
         *,
+
         row_number() over (
             partition by purchase_event_id
             order by
                 touchpoint_timestamp asc,
-                touchpoint_session_id asc
+                event_bundle_sequence_id asc,
+                touchpoint_id asc
         ) as first_click_rank,
 
         row_number() over (
             partition by purchase_event_id
             order by
                 touchpoint_timestamp desc,
-                touchpoint_session_id desc
+                event_bundle_sequence_id desc,
+                touchpoint_id desc
+        ) as chronological_last_click_rank,
+
+        row_number() over (
+            partition by purchase_event_id
+            order by
+                case
+                    when channel != 'direct' then 0
+                    else 1
+                end,
+                touchpoint_timestamp desc,
+                event_bundle_sequence_id desc,
+                touchpoint_id desc
         ) as last_click_rank
 
     from eligible_touchpoints
 
-    where touchpoint_session_id is not null
+    where touchpoint_id is not null
 
 ),
 
@@ -73,6 +95,7 @@ first_click as (
         source as first_click_source,
         medium as first_click_medium,
         campaign as first_click_campaign,
+        channel as first_click_channel,
         touchpoint_timestamp as first_click_timestamp
 
     from ranked_touchpoints
@@ -88,6 +111,7 @@ last_click as (
         source as last_click_source,
         medium as last_click_medium,
         campaign as last_click_campaign,
+        channel as last_click_channel,
         touchpoint_timestamp as last_click_timestamp
 
     from ranked_touchpoints
@@ -106,14 +130,48 @@ select
     p.purchase_revenue,
     p.total_item_quantity,
 
-    coalesce(fc.first_click_source, '(unattributed)') as first_click_source,
-    coalesce(fc.first_click_medium, '(unattributed)') as first_click_medium,
-    coalesce(fc.first_click_campaign, '(unattributed)') as first_click_campaign,
+    coalesce(
+        fc.first_click_source,
+        '(unattributed)'
+    ) as first_click_source,
+
+    coalesce(
+        fc.first_click_medium,
+        '(unattributed)'
+    ) as first_click_medium,
+
+    coalesce(
+        fc.first_click_campaign,
+        '(unattributed)'
+    ) as first_click_campaign,
+
+    coalesce(
+        fc.first_click_channel,
+        'unattributed'
+    ) as first_click_channel,
+
     fc.first_click_timestamp,
 
-    coalesce(lc.last_click_source, '(unattributed)') as last_click_source,
-    coalesce(lc.last_click_medium, '(unattributed)') as last_click_medium,
-    coalesce(lc.last_click_campaign, '(unattributed)') as last_click_campaign,
+    coalesce(
+        lc.last_click_source,
+        '(unattributed)'
+    ) as last_click_source,
+
+    coalesce(
+        lc.last_click_medium,
+        '(unattributed)'
+    ) as last_click_medium,
+
+    coalesce(
+        lc.last_click_campaign,
+        '(unattributed)'
+    ) as last_click_campaign,
+
+    coalesce(
+        lc.last_click_channel,
+        'unattributed'
+    ) as last_click_channel,
+
     lc.last_click_timestamp
 
 from purchases p

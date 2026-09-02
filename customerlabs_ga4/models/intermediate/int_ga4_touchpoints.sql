@@ -29,110 +29,110 @@ with events as (
             select value.string_value
             from unnest(event_params)
             where key = 'campaign'
-        ) as event_campaign,
-
-        traffic_source,
-        traffic_medium,
-        traffic_campaign,
-
-        transaction_id,
-        purchase_revenue
+        ) as event_campaign
 
     from {{ ref('stg_ga4_events') }}
 
 ),
 
-session_events as (
+candidate_touchpoints as (
 
     select
-        *,
-        row_number() over (
-            partition by user_pseudo_id, ga_session_id
-            order by
-                event_timestamp,
-                event_bundle_sequence_id
-        ) as event_rank,
+        event_date,
+        event_timestamp,
+        event_name,
+        user_pseudo_id,
+        ga_session_id,
+        event_bundle_sequence_id,
+        event_source,
+        event_medium,
+        event_campaign,
 
-        row_number() over (
-            partition by user_pseudo_id, ga_session_id
-            order by
-                case
-                    when event_source is not null
-                      or event_medium is not null
-                      or event_campaign is not null
-                    then 0
-                    else 1
-                end,
-                event_timestamp,
-                event_bundle_sequence_id
-        ) as attribution_rank
+        case
+            when lower(coalesce(event_medium, '')) = 'cpc'
+                then 'paid_search'
+
+            when lower(coalesce(event_medium, '')) = 'organic'
+                then 'organic_search'
+
+            when lower(coalesce(event_medium, '')) = 'referral'
+                then 'referral'
+
+            when lower(coalesce(event_source, '')) = '(direct)'
+                and lower(coalesce(event_medium, '')) = '(none)'
+                then 'direct'
+
+            else 'other'
+        end as channel
 
     from events
 
-    where ga_session_id is not null
+    where event_name = 'page_view'
+
+      and ga_session_id is not null
+
+      and (
+          event_source is not null
+          or event_medium is not null
+          or event_campaign is not null
+      )
 
 ),
 
-session_touchpoints as (
+with_previous_channel as (
 
     select
+        *,
+        lag(channel) over (
+            partition by
+                user_pseudo_id,
+                ga_session_id
+            order by
+                event_timestamp,
+                event_bundle_sequence_id
+        ) as previous_channel
+
+    from candidate_touchpoints
+
+),
+
+deduplicated_touchpoints as (
+
+    select
+        *
+    from with_previous_channel
+
+    where previous_channel is null
+       or channel != previous_channel
+
+),
+
+final as (
+
+    select
+        concat(
+            user_pseudo_id,
+            '::',
+            cast(event_timestamp as string),
+            '::',
+            cast(coalesce(event_bundle_sequence_id, 0) as string)
+        ) as touchpoint_id,
+
+        event_date,
+        event_timestamp,
         user_pseudo_id,
         ga_session_id,
+        event_bundle_sequence_id,
 
-        min(event_timestamp) as session_start_ts,
+        event_source as source,
+        event_medium as medium,
+        event_campaign as campaign,
 
-        coalesce(
-            max(
-                case
-                    when attribution_rank = 1
-                    then event_source
-                end
-            ),
-            max(traffic_source),
-            '(unknown)'
-        ) as source,
+        channel
 
-        coalesce(
-            max(
-                case
-                    when attribution_rank = 1
-                    then event_medium
-                end
-            ),
-            max(traffic_medium),
-            '(unknown)'
-        ) as medium,
-
-        coalesce(
-            max(
-                case
-                    when attribution_rank = 1
-                    then event_campaign
-                end
-            ),
-            max(traffic_campaign),
-            '(unknown)'
-        ) as campaign,
-
-        count(*) as event_count,
-
-        countif(event_name = 'purchase') as purchase_events,
-
-        sum(
-            case
-                when event_name = 'purchase'
-                then coalesce(purchase_revenue, 0)
-                else 0
-            end
-        ) as purchase_revenue
-
-    from session_events
-
-    group by
-        user_pseudo_id,
-        ga_session_id
+    from deduplicated_touchpoints
 
 )
 
 select *
-from session_touchpoints
+from final

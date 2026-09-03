@@ -48,39 +48,20 @@ The implementation includes:
 
 ## 2. Architecture
 
+The project follows a layered data architecture from the GA4 source data through transformation, attribution, reporting, and dashboarding.
 
+```mermaid
+flowchart TD
+    A[GA4 Public Dataset] --> B[stg_ga4_events]
+    B --> C[Intermediate Purchase / Touchpoint Models]
+    C --> D[mart_purchase_attribution]
+    D --> E[Reporting Marts]
+    E --> F[Streamlit Dashboard]
 
-The high-level flow is:
-
-
-
-GA4 public dataset
-
-â†’ `stg_ga4_events`
-
-â†’ intermediate purchase/touchpoint models
-
-â†’ `mart_purchase_attribution`
-
-â†’ reporting marts
-
-â†’ Streamlit dashboard
-
-
-
-The streaming demonstration follows a separate path:
-
-
-
-Python sample events
-
-â†’ BigQuery load jobs
-
-â†’ `customerlabs_ga4_streaming.streamed_events`
-
-â†’ `int_streamed_events`
-
-â†’ dashboard live-events panel
+    G[Python Sample Events] --> H[BigQuery Load Jobs]
+    H --> I[customerlabs_ga4_streaming.streamed_events]
+    I --> J[int_streamed_events]
+    J --> K[Dashboard Live Events Panel]
 
 
 

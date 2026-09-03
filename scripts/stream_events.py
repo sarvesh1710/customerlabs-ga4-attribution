@@ -1,5 +1,7 @@
 from datetime import datetime, timezone, timedelta
+import argparse
 import time
+import uuid
 
 from google.cloud import bigquery
 
@@ -13,13 +15,13 @@ FULL_TABLE_ID = f"{PROJECT_ID}.{DATASET_ID}.{TABLE_ID}"
 BATCH_DELAY_SECONDS = 2
 
 
-def build_sample_events():
+def build_sample_events(replay=False):
     base_time = datetime.now(timezone.utc)
 
-    return [
+    run_id = "replay" if replay else uuid.uuid4().hex[:8]
+
+    event_definitions = [
         {
-            "event_id": "stream_demo_001",
-            "event_timestamp": base_time - timedelta(seconds=10),
             "user_pseudo_id": "stream_user_001",
             "ga_session_id": 900001,
             "event_name": "page_view",
@@ -29,8 +31,6 @@ def build_sample_events():
             "event_value": None,
         },
         {
-            "event_id": "stream_demo_002",
-            "event_timestamp": base_time - timedelta(seconds=9),
             "user_pseudo_id": "stream_user_001",
             "ga_session_id": 900001,
             "event_name": "view_item",
@@ -40,8 +40,6 @@ def build_sample_events():
             "event_value": None,
         },
         {
-            "event_id": "stream_demo_003",
-            "event_timestamp": base_time - timedelta(seconds=8),
             "user_pseudo_id": "stream_user_001",
             "ga_session_id": 900001,
             "event_name": "add_to_cart",
@@ -51,8 +49,6 @@ def build_sample_events():
             "event_value": None,
         },
         {
-            "event_id": "stream_demo_004",
-            "event_timestamp": base_time - timedelta(seconds=7),
             "user_pseudo_id": "stream_user_002",
             "ga_session_id": 900002,
             "event_name": "page_view",
@@ -62,8 +58,6 @@ def build_sample_events():
             "event_value": None,
         },
         {
-            "event_id": "stream_demo_005",
-            "event_timestamp": base_time - timedelta(seconds=6),
             "user_pseudo_id": "stream_user_002",
             "ga_session_id": 900002,
             "event_name": "view_item",
@@ -73,8 +67,6 @@ def build_sample_events():
             "event_value": None,
         },
         {
-            "event_id": "stream_demo_006",
-            "event_timestamp": base_time - timedelta(seconds=5),
             "user_pseudo_id": "stream_user_002",
             "ga_session_id": 900002,
             "event_name": "purchase",
@@ -84,8 +76,6 @@ def build_sample_events():
             "event_value": 129.99,
         },
         {
-            "event_id": "stream_demo_007",
-            "event_timestamp": base_time - timedelta(seconds=4),
             "user_pseudo_id": "stream_user_003",
             "ga_session_id": 900003,
             "event_name": "page_view",
@@ -95,8 +85,6 @@ def build_sample_events():
             "event_value": None,
         },
         {
-            "event_id": "stream_demo_008",
-            "event_timestamp": base_time - timedelta(seconds=3),
             "user_pseudo_id": "stream_user_003",
             "ga_session_id": 900003,
             "event_name": "begin_checkout",
@@ -106,8 +94,6 @@ def build_sample_events():
             "event_value": None,
         },
         {
-            "event_id": "stream_demo_009",
-            "event_timestamp": base_time - timedelta(seconds=2),
             "user_pseudo_id": "stream_user_003",
             "ga_session_id": 900003,
             "event_name": "purchase",
@@ -117,8 +103,6 @@ def build_sample_events():
             "event_value": 79.50,
         },
         {
-            "event_id": "stream_demo_010",
-            "event_timestamp": base_time - timedelta(seconds=1),
             "user_pseudo_id": "stream_user_004",
             "ga_session_id": 900004,
             "event_name": "page_view",
@@ -128,6 +112,26 @@ def build_sample_events():
             "event_value": None,
         },
     ]
+
+    events = []
+
+    for index, definition in enumerate(event_definitions, start=1):
+        if replay:
+            event_id = f"stream_demo_{index:03d}"
+        else:
+            event_id = f"stream_{run_id}_{index:03d}"
+
+        event = {
+            "event_id": event_id,
+            "event_timestamp": base_time - timedelta(
+                seconds=11 - index
+            ),
+            **definition,
+        }
+
+        events.append(event)
+
+    return events
 
 
 def load_batch(client, batch):
@@ -207,9 +211,23 @@ def load_batch(client, batch):
 
 
 def main():
+    parser = argparse.ArgumentParser(
+        description="Run the BigQuery micro-batch streaming demo."
+    )
+
+    parser.add_argument(
+        "--replay",
+        action="store_true",
+        help="Replay the original deterministic event IDs to demonstrate idempotency.",
+    )
+
+    args = parser.parse_args()
+
     client = bigquery.Client(project=PROJECT_ID)
 
-    events = build_sample_events()
+    events = build_sample_events(
+        replay=args.replay
+    )
 
     batches = [
         events[0:4],
@@ -219,9 +237,12 @@ def main():
 
     total_inserted = 0
 
+    mode = "REPLAY / IDEMPOTENCY TEST" if args.replay else "NEW EVENT RUN"
+
     print(
         f"Starting micro-batch demo for {FULL_TABLE_ID}"
     )
+    print(f"Mode: {mode}")
     print(f"Total sample events: {len(events)}")
     print()
 

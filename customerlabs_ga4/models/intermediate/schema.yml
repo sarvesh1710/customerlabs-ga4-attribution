@@ -61,3 +61,11 @@ models:
           direct, and other.
         data_tests:
           - not_null
+          - accepted_values
+            arguments:
+              values:
+              - paid_search
+              - organic_search
+              - referral
+              - direct
+              - other
